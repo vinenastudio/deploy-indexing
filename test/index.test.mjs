@@ -37,6 +37,10 @@ test("parseSitemap reads urlset loc and lastmod with entities and CDATA", () => 
   ]);
 });
 
+test("parseSitemap marks a non-sitemap document invalid", () => {
+  assert.deepEqual(parseSitemap("<!doctype html><html><body>App</body></html>"), { type: "invalid", entries: [] });
+});
+
 test("parseSitemap detects a sitemap index", () => {
   const { type, entries } = parseSitemap(fixture("index.xml"));
   assert.equal(type, "index");
@@ -118,10 +122,9 @@ test("nextUrlState stores only sent URLs so unsent ones come back next run", () 
 });
 
 test("normalizeState accepts the plain map and the full shape", () => {
-  assert.deepEqual(normalizeState({ x: "1" }), { urls: { x: "1" }, pending: [], gscSubmittedAt: null });
+  assert.deepEqual(normalizeState({ x: "1" }), { urls: { x: "1" }, gscSubmittedAt: null });
   assert.deepEqual(normalizeState({ urls: { x: "1" }, pending: ["y"], gscSubmittedAt: "2026-10-01T00:00:00Z" }), {
     urls: { x: "1" },
-    pending: ["y"],
     gscSubmittedAt: "2026-10-01T00:00:00Z",
   });
   assert.equal(normalizeState([]), null);

@@ -55,12 +55,14 @@ runs:
     - name: Resolve host
       id: host
       shell: bash
+      continue-on-error: true
       env:
         SITE_URL: ${{ inputs.site-url }}
       run: |
-        host="$(node -e 'try { console.log(new URL(process.env.SITE_URL).host.toLowerCase()) } catch { console.log("invalid-site-url") }')"
+        host="$(node -e 'console.log(new URL(process.env.SITE_URL).host.toLowerCase())' 2>/dev/null || echo invalid-site-url)"
+        rm -f ".deploy-indexing/$host.json"
         echo "host=$host" >> "$GITHUB_OUTPUT"
-        echo "state=$RUNNER_TEMP/deploy-indexing/$host.json" >> "$GITHUB_OUTPUT"
+        echo "state=.deploy-indexing/$host.json" >> "$GITHUB_OUTPUT"
 
     - name: Restore indexing state
       uses: actions/cache/restore@v4.3.0

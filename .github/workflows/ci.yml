@@ -9,11 +9,14 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20]
     steps:
       - uses: actions/checkout@v4.4.0
       - uses: actions/setup-node@v4.4.0
         with:
-          node-version: 20
+          node-version: ${{ matrix.node }}
       - run: node --test test/
       - name: Dry run against the fixture host
         uses: ./

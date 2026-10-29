@@ -36,6 +36,7 @@ function tagText(block, tag) {
 
 export function parseSitemap(xml) {
   const isIndex = /<(?:[\w-]+:)?sitemapindex\b/i.test(xml);
+  if (!isIndex && !/<(?:[\w-]+:)?urlset\b/i.test(xml)) return { type: "invalid", entries: [] };
   const tag = isIndex ? "sitemap" : "url";
   const blocks = xml.match(new RegExp(`<(?:[\\w-]+:)?${tag}\\b[^>]*>[\\s\\S]*?</(?:[\\w-]+:)?${tag}>`, "gi")) ?? [];
   const entries = [];
@@ -83,11 +84,10 @@ export function normalizeState(data) {
   if (data.urls && typeof data.urls === "object") {
     return {
       urls: data.urls,
-      pending: Array.isArray(data.pending) ? data.pending : [],
       gscSubmittedAt: typeof data.gscSubmittedAt === "string" ? data.gscSubmittedAt : null,
     };
   }
-  return { urls: data, pending: [], gscSubmittedAt: null };
+  return { urls: data, gscSubmittedAt: null };
 }
 
 export function capUrls(urls, max) {
@@ -159,6 +159,7 @@ async function fetchText(url, attempts = 3) {
       const res = await fetch(busted, {
         headers: { "cache-control": "no-cache", pragma: "no-cache", "user-agent": "deploy-indexing" },
         redirect: "follow",
+        signal: AbortSignal.timeout(20_000),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.text();
@@ -179,6 +180,7 @@ export async function collectUrls(sitemapUrl, fetcher = fetchText) {
     seen.add(url);
     fetched++;
     const parsed = parseSitemap(await fetcher(url));
+    if (parsed.type === "invalid") throw new Error(`not a sitemap: ${url}`);
     if (parsed.type === "index") {
       for (const entry of parsed.entries) await visit(entry.loc, depth + 1);
     } else {
@@ -200,6 +202,7 @@ function readState(path) {
 async function submitIndexNow({ host, key, urls, dryRun }) {
   const batches = batch(urls);
   let sent = 0;
+  const failed = [];
   for (const [i, urlList] of batches.entries()) {
     const body = { host, key, keyLocation: `https://${host}/${key}.txt`, urlList };
     if (dryRun) {
@@ -211,6 +214,7 @@ async function submitIndexNow({ host, key, urls, dryRun }) {
         method: "POST",
         headers: { "content-type": "application/json; charset=utf-8" },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(60_000),
       });
       if (res.ok) {
         sent += urlList.length;
@@ -218,12 +222,14 @@ async function submitIndexNow({ host, key, urls, dryRun }) {
       } else {
         const text = (await res.text()).slice(0, 300);
         warn(`IndexNow returned HTTP ${res.status} for batch ${i + 1}: ${text}`);
+        failed.push(...urlList);
       }
     } catch (error) {
       warn(`IndexNow request failed for batch ${i + 1}: ${error.message}`);
+      failed.push(...urlList);
     }
   }
-  return sent;
+  return { sent, failed };
 }
 
 async function submitGsc({ token, property, sitemapUrl, dryRun }) {
@@ -233,7 +239,7 @@ async function submitGsc({ token, property, sitemapUrl, dryRun }) {
     return "dry-run";
   }
   try {
-    const res = await fetch(endpoint, { method: "PUT", headers: { authorization: `Bearer ${token}` } });
+    const res = await fetch(endpoint, { method: "PUT", headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(20_000) });
     if (res.ok) {
       console.log(`Search Console: sitemap submitted (HTTP ${res.status})`);
       return "submitted";
@@ -308,6 +314,11 @@ export async function run(env = process.env) {
         excludeUrls(filterHost(Object.keys(previousState.urls), host), exclude, excludeQuery).map((url) => [url, previousState.urls[url]]),
       )
     : null;
+  if (previous && Object.keys(previous).length && !Object.keys(current).length) {
+    warn("sitemap has no URLs but saved state does; skipping so state is kept");
+    return;
+  }
+
   let toSubmit;
   let counts;
   if (previous) {
@@ -331,8 +342,9 @@ export async function run(env = process.env) {
   toSubmit = capped;
 
   let sent = 0;
+  let failed = [];
   if (toSubmit.length) {
-    sent = await submitIndexNow({ host, key, urls: toSubmit, dryRun });
+    ({ sent, failed } = await submitIndexNow({ host, key, urls: toSubmit, dryRun }));
   } else {
     console.log("IndexNow: nothing to submit");
   }
@@ -351,10 +363,11 @@ export async function run(env = process.env) {
 
   if (statePath && !dryRun) {
     try {
-      const urls = nextUrlState(previous, current, unsent);
+      const pending = [...unsent, ...failed];
+      const urls = nextUrlState(previous, current, pending);
       mkdirSync(dirname(statePath), { recursive: true });
-      writeFileSync(statePath, JSON.stringify({ urls, pending: unsent, gscSubmittedAt }));
-      console.log(`State: wrote ${Object.keys(urls).length} URLs (${unsent.length} pending) to ${statePath}`);
+      writeFileSync(statePath, JSON.stringify({ urls, pending, gscSubmittedAt }));
+      console.log(`State: wrote ${Object.keys(urls).length} URLs (${pending.length} pending for next run) to ${statePath}`);
     } catch (error) {
       warn(`could not write state: ${error.message}`);
     }

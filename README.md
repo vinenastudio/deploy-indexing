@@ -132,7 +132,7 @@ The token is passed as an env var and never printed.
 
 ## State
 
-State is one JSON file per host in the Actions cache (`deploy-indexing-<host>-<run_id>`, restored by prefix): `{ "urls": { "<url>": "<lastmod>" }, "pending": [], "gscSubmittedAt": null }`. Delete the cache entries to start over with the `fallback-days` window.
+State is one JSON file per host in the Actions cache (`deploy-indexing-<host>-<run_id>`, restored by prefix): `{ "urls": { "<url>": "<lastmod>" }, "pending": [], "gscSubmittedAt": null }`. The file sits at `.deploy-indexing/<host>.json` in the workspace. `urls` records only URLs IndexNow accepted, so capped and failed URLs come back in the next run's diff. `pending` is informational only: it lists those capped and failed URLs. A sitemap that does not parse, or an empty sitemap when the state has URLs, keeps the old state. Delete the cache entries to start over with the `fallback-days` window.
 
 ## Local run
 
