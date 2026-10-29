@@ -30,7 +30,7 @@ Run it only after production deploys, never for previews. Preview URLs are not o
 | `fallback-days` | `7` | Window used when there is no saved state |
 | `dry-run` | `false` | Log what would be sent, call no API, write no state |
 
-The action has no runner opinion. It runs on whatever `runs-on` your job uses, so private repos can pass their own self-hosted runner labels. It needs Node 20 or newer on the runner.
+The action has no runner opinion. It runs on whatever `runs-on` your job uses, so private repos can pass their own self-hosted runner labels. It needs Node 18 or newer on the runner (CI tests Node 18 and 20).
 
 ## Usage
 
