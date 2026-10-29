@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap><loc>https://example.com/sitemap-1.xml?a=1&amp;b=1</loc><lastmod>2026-10-01</lastmod></sitemap>
+  <sitemap><loc>https://example.com/sitemap-2.xml?a=1&amp;b=2</loc><lastmod>2026-10-02</lastmod></sitemap>
+  <sitemap><loc>https://example.com/sitemap-3.xml?a=1&amp;b=3</loc><lastmod>2026-10-03</lastmod></sitemap>
+  <sitemap><loc>https://example.com/sitemap-4.xml?a=1&amp;b=4</loc><lastmod>2026-10-04</lastmod></sitemap>
+  <sitemap><loc>https://example.com/sitemap-5.xml?a=1&amp;b=5</loc><lastmod>2026-10-05</lastmod></sitemap>
+  <sitemap><loc>https://example.com/sitemap-6.xml?a=1&amp;b=6</loc><lastmod>2026-10-06</lastmod></sitemap>
+  <sitemap><loc>https://example.com/sitemap-7.xml?a=1&amp;b=7</loc><lastmod>2026-10-07</lastmod></sitemap>
+</sitemapindex>

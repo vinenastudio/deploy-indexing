@@ -1,0 +1,97 @@
+name: Deploy indexing
+description: After a production deploy, submit changed sitemap URLs to IndexNow and optionally resubmit the sitemap to Google Search Console.
+author: Vinena Studio
+branding:
+  icon: search
+  color: green
+
+inputs:
+  site-url:
+    description: Production site URL, for example https://example.com
+    required: true
+  sitemap-url:
+    description: Sitemap URL. Defaults to <site-url>/sitemap.xml
+    required: false
+    default: ""
+  indexnow-key:
+    description: IndexNow key. The file https://<host>/<key>.txt must be live on the site.
+    required: true
+  google-access-token:
+    description: Google OAuth access token with the webmasters scope. When empty, the Search Console step is skipped.
+    required: false
+    default: ""
+  gsc-property:
+    description: Search Console property. Defaults to sc-domain:<host>
+    required: false
+    default: ""
+  fallback-days:
+    description: With no saved state, submit only URLs whose lastmod is within this many days.
+    required: false
+    default: "7"
+  exclude:
+    description: Newline-separated path prefixes to drop before diffing, for example /api/
+    required: false
+    default: ""
+  exclude-query-urls:
+    description: Drop URLs that have a query string.
+    required: false
+    default: "true"
+  max-urls:
+    description: Most URLs to send in one run. The rest stay pending for the next run.
+    required: false
+    default: "5000"
+  gsc-min-interval-hours:
+    description: Skip the Search Console submit when the last successful one is newer than this many hours. 0 always submits.
+    required: false
+    default: "0"
+  dry-run:
+    description: Log what would be sent without calling any API.
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve host
+      id: host
+      shell: bash
+      env:
+        SITE_URL: ${{ inputs.site-url }}
+      run: |
+        host="$(node -e 'try { console.log(new URL(process.env.SITE_URL).host.toLowerCase()) } catch { console.log("invalid-site-url") }')"
+        echo "host=$host" >> "$GITHUB_OUTPUT"
+        echo "state=$RUNNER_TEMP/deploy-indexing/$host.json" >> "$GITHUB_OUTPUT"
+
+    - name: Restore indexing state
+      uses: actions/cache/restore@v4.3.0
+      continue-on-error: true
+      with:
+        path: ${{ steps.host.outputs.state }}
+        key: deploy-indexing-${{ steps.host.outputs.host }}-${{ github.run_id }}
+        restore-keys: deploy-indexing-${{ steps.host.outputs.host }}-
+
+    - name: Submit changed URLs
+      shell: bash
+      continue-on-error: true
+      env:
+        DI_SITE_URL: ${{ inputs.site-url }}
+        DI_SITEMAP_URL: ${{ inputs.sitemap-url }}
+        DI_INDEXNOW_KEY: ${{ inputs.indexnow-key }}
+        DI_GOOGLE_ACCESS_TOKEN: ${{ inputs.google-access-token }}
+        DI_GSC_PROPERTY: ${{ inputs.gsc-property }}
+        DI_FALLBACK_DAYS: ${{ inputs.fallback-days }}
+        DI_EXCLUDE: ${{ inputs.exclude }}
+        DI_EXCLUDE_QUERY_URLS: ${{ inputs.exclude-query-urls }}
+        DI_MAX_URLS: ${{ inputs.max-urls }}
+        DI_GSC_MIN_INTERVAL_HOURS: ${{ inputs.gsc-min-interval-hours }}
+        DI_DRY_RUN: ${{ inputs.dry-run }}
+        DI_STATE_PATH: ${{ steps.host.outputs.state }}
+      run: node "$GITHUB_ACTION_PATH/src/index.mjs"
+
+    - name: Save indexing state
+      if: always()
+      uses: actions/cache/save@v4.3.0
+      continue-on-error: true
+      with:
+        path: ${{ steps.host.outputs.state }}
+        key: deploy-indexing-${{ steps.host.outputs.host }}-${{ github.run_id }}

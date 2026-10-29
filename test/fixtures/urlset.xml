@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://example.com/</loc><lastmod>2026-10-01</lastmod></url>
+  <url><loc>https://example.com/search?q=a&amp;b=c</loc><lastmod>2026-10-02T10:00:00Z</lastmod></url>
+  <url><loc>https://example.com/caf&#233;/&#x6D;enu</loc></url>
+  <url>
+    <loc><![CDATA[https://example.com/cdata]]></loc>
+    <lastmod>2026-10-03</lastmod>
+  </url>
+  <url><loc>https://other.example.org/x</loc><lastmod>2026-10-04</lastmod></url>
+</urlset>
