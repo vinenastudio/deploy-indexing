@@ -69,7 +69,7 @@ runs:
       continue-on-error: true
       with:
         path: ${{ steps.host.outputs.state }}
-        key: deploy-indexing-${{ steps.host.outputs.host }}-${{ github.run_id }}
+        key: deploy-indexing-${{ steps.host.outputs.host }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: deploy-indexing-${{ steps.host.outputs.host }}-
 
     - name: Submit changed URLs
@@ -96,4 +96,4 @@ runs:
       continue-on-error: true
       with:
         path: ${{ steps.host.outputs.state }}
-        key: deploy-indexing-${{ steps.host.outputs.host }}-${{ github.run_id }}
+        key: deploy-indexing-${{ steps.host.outputs.host }}-${{ github.run_id }}-${{ github.run_attempt }}

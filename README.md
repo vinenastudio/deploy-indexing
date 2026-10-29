@@ -132,7 +132,7 @@ The token is passed as an env var and never printed.
 
 ## State
 
-State is one JSON file per host in the Actions cache (`deploy-indexing-<host>-<run_id>`, restored by prefix): `{ "urls": { "<url>": "<lastmod>" }, "pending": [], "gscSubmittedAt": null }`. The file sits at `.deploy-indexing/<host>.json` in the workspace. `urls` records only URLs IndexNow accepted, so capped and failed URLs come back in the next run's diff. `pending` is informational only: it lists those capped and failed URLs. A sitemap that does not parse, or an empty sitemap when the state has URLs, keeps the old state. Delete the cache entries to start over with the `fallback-days` window.
+State is one JSON file per host in the Actions cache (`deploy-indexing-<host>-<run_id>-<run_attempt>`, restored by the `deploy-indexing-<host>-` prefix). Matrix jobs that index the same host in one run are not supported, since they would share one cache key: `{ "urls": { "<url>": "<lastmod>" }, "pending": [], "gscSubmittedAt": null }`. The file sits at `.deploy-indexing/<host>.json` in the workspace. `urls` holds every sitemap URL except the capped and failed ones, so those come back in the next run's diff. On a first run, URLs outside the `fallback-days` window are saved as the baseline without being sent. `pending` is informational only: it lists those capped and failed URLs. A sitemap that does not parse, or an empty sitemap when the state has URLs, keeps the old state. Delete the cache entries to start over with the `fallback-days` window.
 
 ## Local run
 
